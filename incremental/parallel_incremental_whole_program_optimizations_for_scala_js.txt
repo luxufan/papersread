@@ -1,0 +1,39 @@
+What is knowledge query?
+  Knowledge query means querying facts about the whole program.
+  Functions that provide this kind of service called knownledge query API. For example:
+    Query a method body: Body getMethodBody(MethodID method);
+    Query a actual method target of a class's method: method resolveStaticCall(Class c, MethodName n);
+
+What is method optimizer?
+  1. Method optimizer operate solely on a method.
+  2. Method optimizer can only access a set of restricted knowledge query APIs.
+  3. The input of method optimizer is a non-optimzied method body plus the required knowledge querys.
+  4. The output of method optimizer is a optimzied method.
+  5. So, we can abstract the optimization process as follows:
+     optimized_method = f(non_optimized_method, required_knowledge_querys_result);
+       Here f corresponds the method optimizer.
+       And it has a property of this abstraction:
+         Assume we have two methods non_optimized_method_1 and non_optimized_method_2.
+         And optimized_method_1 = f(non_optimized_method_1, required_knowledge_querys_result_1);
+             optimized_method_2 = f(non_optimized_method_2, required_knowledge_querys_result_2);
+         Then ((non_optimzied_method_1 == non_optimized_method_2) &&
+           (required_knowledge_querys_result_1 == required_knowledge_querys_result_2)) ==> optimized_method_1 == optimized_method_2
+     According to this imply rule, whether reoptimize a method is needed depends on the change of non_optimized_method and required_knowledge_querys_result
+
+What is the main idea of a incremental method optimizer?
+  1. Build dependency graph. It can be represented with a map that maps method to a set of knowledge querys.
+     For example:
+       B.foo --> {getMethodBody(A.print), resolveStaticCall(C.bar)}
+       C.bar --> {getMethodBody(B.print)}
+     Whichs means optimizing method B.foo relies on the two knownledge querys getMethodBody(A.print) and resolveStaticCall(C.bar)
+  2. Diff the program change and compute the set of impacted knowledge querys. Program change changed the structure of the program like
+     inheritance, dynamic dispatch, function instruction size. The change of program's structure caused the different result of knowledge
+     querys
+  3. Invalidate optimize results according to the dependency graph and the set of impacted knownledge querys.
+  4. Reoptimize the invalidated methods.
+
+What are the disadvantages of this algorithm?
+  1. Implemention complexity. To add a new knowledge querys, not only we need to implement the query itself, but also implement the reasoning of how program change impacts this query.
+  2. Need to have a persistent database to record the dependency graph.
+  3. The overhead of detect algorithm.
+  4. The paper says methods must be optimized independently. Is this necessary?
