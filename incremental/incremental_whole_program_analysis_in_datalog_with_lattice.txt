@@ -1,0 +1,9 @@
+What is the problem of the previous datalog frameworks?
+  IncA is a incremental datalog analysis framework. But it does incremental inter-procedural analysis very slow: the update time is not proportional to the change size.
+
+Does whole-program analysis in datalog framework incrementalizable in most cases?
+  Yes. The paper measures the impact of each input change on point-to analysis, constant propagationn, and interval analysis. The experience result shows that whole-program analysis are incrementalizable.
+
+What is the main idea of this paper?
+  In the initial analysis, LADDDER records a iteration time axis, denoted by timestamp (T) and a support count for each tuple per timestamp. Timestamp is assotiated with each iteration of fixed point computation. And support count represents the number of alternative derivations a given tuple has at a specific timestamp.
+  In the incremental analysis, LADDDER uses the input diff to trigger a new fixpoint evaluation that infers which tuples need to be inserted or deleted at higher timestamps. So in the incremental phase, the fixed point computation is replaced by infering which tuples need to be inserted or deleted.
