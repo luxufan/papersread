@@ -1,0 +1,15 @@
+What is the main idea of the paper?
+In the initial compilation, interprocedural analysis results like alias set, mod set, ref set, and constant set are computed.
+For each function, the compiler attach annotation sets like mayAlias, mayMod, mayUse, mustBeConstant set to the function. For simplisity, here we use the most simple strategy that use the most recent compilation result:
+mayAlias(p) = alias(p)
+In the incremental building, the changed functions' alias set will be recomputed. If it adds a new alias pair that doesn't exist in the functions' mayAlias set, then these functions need to be added to the recompilation list.
+
+What are the disadvanteges of this idea?
+1. The incremental compilation result may be different with the initial full compilation.
+2. It just consider the safety of the optimizationn. The new optimization opportunities appear due to the source code change can not be optimized.
+3. The anotation set computed by the most recent compilation strategy is not exact, which means many functions that don't need to be recompiled will also be added to the recompilation list.
+4. Although the Reference Information and Compiler Cooperation strategies can compute a more exact anotation set, the time to run these strategies' algorithm is a big burden for compile time.
+
+What are the advantages of this idea?
+1. It operates on function level, which is finer-grained than operates on module-level like ThinLTO.
+2. The Most Recent Compilation strategy is simple and has a big improvement than the non-incremental interprocedural building.
