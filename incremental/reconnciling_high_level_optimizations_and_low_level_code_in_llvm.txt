@@ -1,0 +1,60 @@
+Flat Memory Models
+  A memory-accessing instruction can access any (unprotected) localtion in memory.
+  The location of objects are allowed to guess.
+  for this c codes:
+    char *p = malloc(4);
+    char *q = malloc(4);
+    q[2] = 0;
+    q[6] = 1;
+    print(q[2]);
+
+  In flat memory model, it prints 1 if q == p + 4, and 0 otherwise. So, there are no optimization oppotunitie (e.g. propagate the q[2] = 0 to the call of print) for this code under flat memory model.
+
+Data-Flow Provenance Tracking
+  Track the object that the point points to.
+  UB if access memory with a pointer that is out-of-bounds of its object.
+  For this c code:
+    char *p = malloc(4);
+    char *q = malloc(4);
+    char *q2 = q + 2;
+    char *p6 = p + 6;
+    *q2 = 0;  // OK
+    *p6 = 1;  // UB, since out-of-bounds of obj p
+    print(*q2);  // can be replaced with print(0);
+
+  In this memory model, replace print(*q2) to print(0) is valid since access out-of-bound of it object is UB.
+  However, integer to pointer casts is not suppported.
+
+Extending Provenance to intergers
+  To handle the unsupported feature of integer to pointer casts, it extends the following things:
+    1. Track objects even for interger to pointer casts. The object it refers to or nil if none.
+    2. Store to nil object is UB
+  However, it blocks optimizations for the following c codes:
+    char *p = malloc(4); // (val=0x14, obj=p)
+    char *q = malloc(4); // (val=0x14, obj=q)
+    int v = (int)p + 4;  // (val=0x14, obj=p)
+    int w = (int)q;      // (val=0x14, obj=q)
+
+    if (v == w)
+      *(int*)w = 2;
+
+    The replacement from *(int*)w = 2 with *(int*)v = 2 is invalid since *(int*)v = 2 is UB in the current memory model.
+
+Wildcard Provenance
+  To improve the optimization in Data-Flow Provenance, it changes the following things:
+    1. integer only carry a numeric value.
+    2. A pointer obtained by casting from an integer can access any object (represented with a *).
+    Now, replacement from *(int*)w with *(int*)v = 2 is valid.
+  However, the pricise alias analysis becomes difficult since integer to poitner cast pointer may alias any other objects.
+
+Deferred Bound Checking
+  It changes two things:
+    1. poison only when the pointer is dereferenced.
+    2. For "*" objects, track a set of valid addresses when it is dereferenced.
+  By defering the bound checking, it is now valid to reorder pointer arithmetic.
+  By tracking the valid addresses for "*", the alias analysis precision could be further increased.
+
+Prevent Address Guessing.
+  A problem with wildcard provenance is that a pointer formed out of an integer can access any objects. That makes precise alias analysis very difficult. To prevent such address guessing, there are two solutions:
+    1. non-determinstic allocations. If there is at least one execution where the program would trigger UB, the compiler can assume q cannot alias with p. However, this solution has "side-channel leak" problem.
+    2. To avoid the "side-channel leak", the twin allocation is introduced. It requires the allocation functions to reserver (at least) tow blocks instead of a single one, as it happens in run-time implementations. Under this allocation strategy, the problem with wildcard provenance and "side-channel leak" problem are avoided at the same time.
