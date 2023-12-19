@@ -1,0 +1,35 @@
+What is relevant context inference?
+  Modular technique for flow- and context-sensitive data-flow analysis.
+  Does not require the entrire program be memory-resident during the analysis.
+  Generate summary transfer function for each function and analysis only on summary transfer function.
+
+What is summary transfer function?
+  The sumary transfer function of a method M is the set of dfelms.
+
+What are dfelms? 
+  dfelms are data-flow facts together with corresponding alias and type context conditions (inferred by the analysis).
+  For points-to analysis, each dfelm has the following forms:
+    <relevant context, points-to>,
+    points-to represents a pair of the form: 
+      <var, object> var is the pointer variable, object is the runtime object that created in program.
+    relevant context has the following form:
+      <alias context, type context>
+
+How to analyis?
+  Phase 0: 
+    construct a overestimate call graph, initial call graph by class hierarchy analysis.
+    Construct a SCC-DAG via the initial call graph.
+  Phase 1:
+    Traverses the SCC-DAG in a reverse topological order (bottom-up) (without iteration) and analyze each method assuming parameters and global variables have unknown initial values.
+    For each method in SCC, generate the dfelms and propagate the dfelms for call sites. 
+    For propagation in the same SCC, propagate until the fixed point is reached.
+    After phase 1, the summary transfer function of each method and the points-to solution at each node in the method are expressed in terms of the dfelms. (may have unknown initial values)
+  Phase 2:
+    traverse the SCC-DAG in a topological order (top-down)
+    propagate concrete values of unknown initial values to the entry nodes of methods.
+  Phase 3:
+    analysis nodes that are not entry node.
+
+How to propagate dfelms?
+  See section 3.2.1.
+  
