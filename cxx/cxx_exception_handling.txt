@@ -1,0 +1,72 @@
+Why needs exception handling?
+  To deal with exceptional conditions like insufficient resources, missing files, or invalid user input.
+  In C, it is handled by reporting special return codes. For example,
+  ```
+  void *ptr = malloc(1000000);
+  if (ptr == NULL)
+    fprintf(stderr, "Sorry, out of memory\n");
+  ```
+
+How does c++ deal with exception?
+  The above C code can be writen in c++ as follows:
+  ```
+  struct OutOfMemory {};
+  struct Resource {
+    Resource(); // Ctor allocates resource
+    ~Resource(); // Dtor frees resource 
+  };
+
+  int foo(int size) {
+    void *ptr = malloc(size);
+    if (ptr == 0) throw OutOfMemory();
+  }
+
+  int bar(int elements) {
+    Resource object;
+    int result = foo(2 * elements); /* Do something else */
+  }
+  
+  int main() {
+    int i; 
+    try {
+      for (i = 0; i < 100; i++)bar(i); 
+    } catch (OutOfMemory) {
+     /* Report out-of-memory condition*/
+      cerr << "Out of memory for i=" << i << endl; 
+    } catch (...) {
+    /* Report other problems. */
+    }
+  }
+  ```
+
+What are the benifits of c++ exception-handling?
+  1. objects with destructors such as 'object' in the above code are
+     properly destroyed when the block containing them is exited, whether normally or because of an exception, which makes resource management safer.
+  2. the exception-handling code is separate from normal processing.
+
+How does setjmp implements exception handling?
+  1. setjmp allocate the execution context of try block in the setjmp buffer and link this buffer to the last setjmp buffer.
+  2. once a exception is thrown, longjmp transfers the control to the place where setjmp was originally called as long as the function containing the setjmp never returned.
+  3. Another linked list needs to be created to destroy the local objects (calls the destructors of these objects)
+
+What are the performance impact of setjmp solution?
+  1. The setjmp function must be called at the beginning of every try block, and the list of jmp buffer must be maintained.
+  2. A linked list of objects on the stack must be maintained at all times and kept in a consistent state with repect to the list of jmp buffer.
+  3. All variables that are stored in registers and declared outside the try block must be restored to their initial value when longjmp is invoked. For instance, the value i in the catch block in main must be the same value as when bar was called.
+
+What is table driven exception?
+  1. A table maps the program counter to the action table.
+  2. The action table describes the following things:
+       1. destructors needs to be invoked
+       2. adjusts the stack
+       3. address of exception handler
+  3. once an appropriate exception handler is found, a new PC is computed from the action table and control transfers to the handler. Otherwise, continue unwind to the previous call stack
+
+What are the performance impact of table driven exception?
+  1. variables declared outside still needs to be restored.
+  2. All objects that have destructors must have their address stored in a table. Therefore, they must reside in memory, and their address is implicitly exposed. All automatic objects that have their address exposed must be committed to memory before any call.
+  3. extension of variable lifetime which puts additional pressure on the register allocator.
+  4. register selection constraints. similar to 3.
+  5. control-flow complexity. 
+       1. try block to catch block.
+       2. catch block to function end.
